@@ -1,7 +1,9 @@
 import * as THREE from "three";
 //import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GUI } from "dat.gui";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import Stats from "three/addons/libs/stats.module.js";
+
 import "./style.css";
 
 const scene = new THREE.Scene();
@@ -36,13 +38,25 @@ const stats = new Stats();
 //stats.showPanel(1); //ms as default
 document.body.appendChild(stats.dom);
 
+const gui = new GUI();
+const cubeFolder = gui.addFolder("Cube");
+
+cubeFolder.add(cube.rotation, "x", 0, Math.PI * 2); //360 degree
+cubeFolder.add(cube.rotation, "y", 0, Math.PI * 2);
+cubeFolder.add(cube.rotation, "z", 0, Math.PI * 2);
+cubeFolder.open();
+
+const cameraFolder = gui.addFolder("Camera");
+cameraFolder.add(camera.position, "z", 0, 20);
+cameraFolder.open();
+
 function animate() {
   requestAnimationFrame(animate);
 
   // inspect a heavy animation
   // stats.begin();
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
+  // cube.rotation.x += 0.01;
+  // cube.rotation.y += 0.01;
   // stats.end();
 
   renderer.render(scene, camera);
