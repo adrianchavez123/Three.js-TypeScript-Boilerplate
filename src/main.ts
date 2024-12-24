@@ -42,7 +42,7 @@ let suvBody: THREE.Object3D;
 await loader.loadAsync("models/suv_body.glb").then((gltf) => {
   suvBody = gltf.scene;
 });
-loader.load("models/suv_wheel.glb", function (gltf) {
+await loader.loadAsync("models/suv_wheel.glb").then((gltf) => {
   const wheels = [
     gltf.scene,
     gltf.scene.clone(),
