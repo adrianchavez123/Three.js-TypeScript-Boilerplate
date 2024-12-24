@@ -1,4 +1,3 @@
-// import { GUI } from "dat.gui";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
@@ -6,9 +5,6 @@ import Stats from "three/addons/libs/stats.module.js";
 import "./style.css";
 
 const scene = new THREE.Scene();
-scene.environment = new THREE.CubeTextureLoader()
-  .setPath("https://sbcode.net/img/")
-  .load(["px.png", "nx.png", "py.png", "ny.png", "pz.png", "nz.png"]);
 
 const gridHelper = new THREE.GridHelper();
 scene.add(gridHelper);
@@ -34,24 +30,19 @@ window.addEventListener("resize", () => {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-const light = new THREE.DirectionalLight(undefined, Math.PI);
-light.position.set(1, 1, 1);
-scene.add(light);
-
-const data = { color: 0x00ff00, labelsVisible: true };
-
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(10, 10),
-  new THREE.MeshNormalMaterial()
+  new THREE.MeshStandardMaterial()
 );
 plane.rotation.x = -Math.PI / 2;
-plane.visible = false;
 scene.add(plane);
+
+const data = { color: 0x00ff00, lightColor: 0xffffff };
 
 const geometry = new THREE.IcosahedronGeometry(1, 1);
 
 const meshes = [
-  new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: data.color })), //flatshading doesn't exist
+  new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: data.color })),
   new THREE.Mesh(geometry, new THREE.MeshNormalMaterial({ flatShading: true })),
   new THREE.Mesh(
     geometry,
@@ -59,7 +50,7 @@ const meshes = [
   ),
   new THREE.Mesh(
     geometry,
-    new THREE.MeshStandardMaterial({ color: data.color, flatShading: true }) //works with enviroment lights "HDRS"
+    new THREE.MeshStandardMaterial({ color: data.color, flatShading: true })
   ),
 ];
 
@@ -70,67 +61,152 @@ meshes[3].position.set(3, 1, 0);
 
 scene.add(...meshes);
 
+const gui = new GUI();
+
+// #region AmbientLight
+
+const ambientLight = new THREE.AmbientLight(data.lightColor, Math.PI);
+ambientLight.visible = false;
+scene.add(ambientLight);
+
+const ambientLightFolder = gui.addFolder("AmbientLight");
+ambientLightFolder.add(ambientLight, "visible");
+ambientLightFolder.addColor(data, "lightColor").onChange(() => {
+  ambientLight.color.set(data.lightColor);
+});
+ambientLightFolder.add(ambientLight, "intensity", 0, Math.PI);
+
+// #endregion
+
+// #region DirectionalLight
+
+const directionalLight = new THREE.DirectionalLight(data.lightColor, Math.PI);
+directionalLight.position.set(1, 1, 1);
+scene.add(directionalLight);
+
+const directionalLightHelper = new THREE.DirectionalLightHelper(
+  directionalLight
+);
+directionalLightHelper.visible = false;
+scene.add(directionalLightHelper);
+
+const directionalLightFolder = gui.addFolder("DirectionalLight");
+directionalLightFolder.add(directionalLight, "visible");
+directionalLightFolder.addColor(data, "lightColor").onChange(() => {
+  directionalLight.color.set(data.lightColor);
+});
+directionalLightFolder.add(directionalLight, "intensity", 0, Math.PI * 10);
+
+const directionalLightFolderControls =
+  directionalLightFolder.addFolder("Controls");
+directionalLightFolderControls
+  .add(directionalLight.position, "x", -1, 1, 0.001)
+  .onChange(() => {
+    directionalLightHelper.update();
+  });
+directionalLightFolderControls
+  .add(directionalLight.position, "y", -1, 1, 0.001)
+  .onChange(() => {
+    directionalLightHelper.update();
+  });
+directionalLightFolderControls
+  .add(directionalLight.position, "z", -1, 1, 0.001)
+  .onChange(() => {
+    directionalLightHelper.update();
+  });
+directionalLightFolderControls
+  .add(directionalLightHelper, "visible")
+  .name("Helper Visible");
+directionalLightFolderControls.close();
+
+// #endregion
+
+// #region Pointlight
+
+const pointLight = new THREE.PointLight(data.lightColor, Math.PI);
+pointLight.position.set(2, 0, 0);
+pointLight.visible = false;
+scene.add(pointLight);
+
+const pointLightHelper = new THREE.PointLightHelper(pointLight);
+pointLightHelper.visible = false;
+scene.add(pointLightHelper);
+
+const pointLightFolder = gui.addFolder("Pointlight");
+pointLightFolder.add(pointLight, "visible");
+pointLightFolder.addColor(data, "lightColor").onChange(() => {
+  pointLight.color.set(data.lightColor);
+});
+pointLightFolder.add(pointLight, "intensity", 0, Math.PI * 10);
+
+const pointLightFolderControls = pointLightFolder.addFolder("Controls");
+pointLightFolderControls.add(pointLight.position, "x", -10, 10);
+pointLightFolderControls.add(pointLight.position, "y", -10, 10);
+pointLightFolderControls.add(pointLight.position, "z", -10, 10);
+pointLightFolderControls.add(pointLight, "distance", 0, 20).onChange(() => {
+  spotLightHelper.update();
+});
+pointLightFolderControls.add(pointLight, "decay", 0, 10).onChange(() => {
+  spotLightHelper.update();
+});
+pointLightFolderControls
+  .add(pointLightHelper, "visible")
+  .name("Helper Visible");
+pointLightFolderControls.close();
+
+// #endregion
+
+// #region Spotlight
+
+const spotLight = new THREE.SpotLight(data.lightColor, Math.PI);
+spotLight.position.set(3, 2.5, 1);
+spotLight.visible = false;
+spotLight.target.position.set(5, 0, -5);
+scene.add(spotLight);
+
+const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+spotLightHelper.visible = false;
+scene.add(spotLightHelper);
+
+const spotLightFolder = gui.addFolder("Spotlight");
+spotLightFolder.add(spotLight, "visible");
+spotLightFolder.addColor(data, "lightColor").onChange(() => {
+  spotLight.color.set(data.lightColor);
+});
+spotLightFolder.add(spotLight, "intensity", 0, Math.PI * 10);
+
+const spotLightFolderControls = spotLightFolder.addFolder("Controls");
+spotLightFolderControls.add(spotLight.position, "x", -10, 10).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight.position, "y", -10, 10).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight.position, "z", -10, 10).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight, "distance", 0, 20).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight, "decay", 0, 10).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight, "angle", 0, 1).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLight, "penumbra", 0, 1, 0.001).onChange(() => {
+  spotLightHelper.update();
+});
+spotLightFolderControls.add(spotLightHelper, "visible").name("Helper Visible");
+spotLightFolderControls.close();
+
+// #endregion
+
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
-const gui = new GUI();
+const labels = document.querySelectorAll<HTMLDivElement>(".label");
 
-const meshBasicMaterialFolder = gui.addFolder("MeshBasicMaterial");
-meshBasicMaterialFolder.addColor(data, "color").onChange(() => {
-  (meshes[0].material as THREE.MeshBasicMaterial).color.set(data.color);
-});
-meshBasicMaterialFolder.add(meshes[0].material, "wireframe");
-meshBasicMaterialFolder.close();
-
-const meshNormalMaterialFolder = gui.addFolder("MeshNormalMaterial");
-meshNormalMaterialFolder
-  .add(meshes[1].material as THREE.MeshNormalMaterial, "flatShading")
-  .onChange(() => {
-    meshes[1].material.needsUpdate = true;
-  });
-meshNormalMaterialFolder.add(meshes[1].material, "wireframe");
-meshNormalMaterialFolder.close();
-
-const meshPhongMaterialFolder = gui.addFolder("MeshPhongMaterial");
-meshPhongMaterialFolder.addColor(data, "color").onChange(() => {
-  (meshes[2].material as THREE.MeshPhongMaterial).color.set(data.color);
-});
-meshPhongMaterialFolder
-  .add(meshes[2].material as THREE.MeshPhongMaterial, "flatShading")
-  .onChange(() => {
-    meshes[2].material.needsUpdate = true;
-  });
-meshPhongMaterialFolder.add(meshes[2].material, "wireframe");
-meshPhongMaterialFolder.close();
-
-const meshStandardMaterialFolder = gui.addFolder("MeshStandardMaterial");
-meshStandardMaterialFolder.addColor(data, "color").onChange(() => {
-  (meshes[3].material as THREE.MeshStandardMaterial).color.set(data.color);
-});
-meshStandardMaterialFolder
-  .add(meshes[3].material as THREE.MeshStandardMaterial, "flatShading")
-  .onChange(() => {
-    meshes[3].material.needsUpdate = true;
-  });
-meshStandardMaterialFolder.add(meshes[3].material, "wireframe");
-meshStandardMaterialFolder.close();
-
-const lightFolder = gui.addFolder("Light");
-lightFolder.add(light, "visible");
-lightFolder.open();
-
-const gridFolder = gui.addFolder("Grid");
-gridFolder.add(gridHelper, "visible");
-gridFolder.open();
-
-const labelsFolder = gui.addFolder("Labels");
-labelsFolder.add(data, "labelsVisible");
-labelsFolder.open();
-
-// const labels = document.querySelectorAll<HTMLDivElement>(".label");
-const labels = document.querySelectorAll(
-  ".label"
-) as NodeListOf<HTMLDivElement>;
 let x, y;
 const v = new THREE.Vector3();
 
@@ -148,7 +224,6 @@ function animate() {
 
     labels[i].style.left = x + "px";
     labels[i].style.top = y + "px";
-    labels[i].style.display = data.labelsVisible ? "block" : "none";
   }
 
   renderer.render(scene, camera);
