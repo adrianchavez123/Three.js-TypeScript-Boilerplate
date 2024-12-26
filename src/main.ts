@@ -14,12 +14,11 @@ light.angle = Math.PI / 16;
 light.castShadow = true;
 scene.add(light);
 
-const helper = new THREE.SpotLightHelper(light);
-// scene.add(helper);
-
 new RGBELoader().load("img/venice_sunset_1k.hdr", (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = texture;
+  scene.background = texture;
+  scene.backgroundBlurriness = 0.15;
 });
 
 const camera = new THREE.PerspectiveCamera(
@@ -32,7 +31,7 @@ camera.position.set(1.5, 0.75, 2);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.1;
+renderer.toneMappingExposure = 0.8;
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -46,23 +45,33 @@ window.addEventListener("resize", () => {
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-const textureLoader = new THREE.TextureLoader();
-const textureFlare0 = textureLoader.load(
-  "https://cdn.jsdelivr.net/gh/Sean-Bradley/First-Car-Shooter@main/dist/client/img/lensflare0.png"
-);
-
-const lensflare = new Lensflare();
-lensflare.addElement(new LensflareElement(textureFlare0, 1000, 0));
-light.add(lensflare);
-
 new GLTFLoader().load("models/suzanne_scene.glb", (gltf) => {
-  console.log(gltf);
-
+  console.log(gltf.scene);
   const suzanne = gltf.scene.getObjectByName("Suzanne") as THREE.Mesh;
   suzanne.castShadow = true;
+  // (
+  //   (suzanne.material as THREE.MeshStandardMaterial).map as THREE.Texture
+  // ).colorSpace = THREE.LinearSRGBColorSpace;
+  // console.log(suzanne.material);
+
+  // @ts-ignore
+  suzanne.material.map.colorSpace = THREE.LinearSRGBColorSpace;
 
   const plane = gltf.scene.getObjectByName("Plane") as THREE.Mesh;
   plane.receiveShadow = true;
+
+  const spotLight = gltf.scene.getObjectByName("Spot") as THREE.SpotLight;
+  spotLight.intensity /= 500;
+  spotLight.castShadow = true;
+
+  const textureLoader = new THREE.TextureLoader();
+  const textureFlare0 = textureLoader.load(
+    "https://cdn.jsdelivr.net/gh/Sean-Bradley/First-Car-Shooter@main/dist/client/img/lensflare0.png"
+  );
+
+  const lensflare = new Lensflare();
+  lensflare.addElement(new LensflareElement(textureFlare0, 1000, 0));
+  spotLight.add(lensflare);
 
   scene.add(gltf.scene);
 });
